@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNostrContext } from './context'
-import PQueue from 'p-queue';
 
 class PromiseQueue {
   queue = Promise.resolve(true)
@@ -19,10 +18,9 @@ export const Messages = () => {
   const [decrypted, setDecrypted] = useState([])
   // const [pub, setPub] = useState('')
   const { sent, received, pub } = useNostrContext()
-  const queue = new PQueue({ concurrency: 1 });
-  // const queue = new PromiseQueue()
-
-
+  //const queue = new PQueue({ concurrency: 1 });
+  const queueRef = useRef(new PromiseQueue());
+  
   const groupBy = (arr) => {
     return arr.reduce((acc, cur) => {
       let property = cur.pubkey === pub ? 'tags' : 'pubkey'
@@ -37,8 +35,10 @@ export const Messages = () => {
     //   let decoded = await window.nostr.nip04.decrypt(senderDecode, event.content)
     let decoded
     try {
-      decoded = await queue.add(async () => { return await window.nostr.nip04.decrypt(senderDecode, event.content) })
-    } catch (e) { console.log(e) }
+      decoded = await queueRef.current.add(async () => { 
+        return await window.nostr.nip04.decrypt(senderDecode, event.content) 
+      })
+    } catch (e) { console.error(e) }
 
     // await queue.add(async() => await window.nostr.nip04.decrypt(senderDecode, event.content))
 
